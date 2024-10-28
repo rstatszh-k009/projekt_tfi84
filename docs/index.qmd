@@ -1,0 +1,24 @@
+---
+title: "Total geschaffene Stellen, Beschäftigte" 
+format: html 
+editor: visual 
+author: "tfi84" ---
+---
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+read_csv(here::here("daten/raw/KANTON_ZUERICH_356.csv"))
+```
+
+# Einleitung
+
+## Daten
+
+## Analyseziele
+
+# Daten Aufbereitung
+
+# Daten Visualisierung
