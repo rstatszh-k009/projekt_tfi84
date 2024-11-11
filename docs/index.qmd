@@ -7,10 +7,12 @@ author: "tfi84" ---
 
 ```{r}
 library(tidyverse)
+library(dplyr)
 ```
 
 ```{r}
-read_csv(here::here("daten/raw/KANTON_ZUERICH_356.csv"))
+neuestellen <- read_csv(here::here("daten/raw/KANTON_ZUERICH_356.csv"))
+einwohner <- read_csv(here::here("daten/raw/KTZH_00002622_00005364.csv"))
 ```
 
 # Einleitung
@@ -19,6 +21,11 @@ read_csv(here::here("daten/raw/KANTON_ZUERICH_356.csv"))
 
 ## Analyseziele
 
+Gibt es Korrelation zwischen Firmengründungen/ Total geschaffenen Stellen und der Anzahl Einwohner pro HA
+
 # Daten Aufbereitung
+
+```{r}
+```
 
 # Daten Visualisierung
