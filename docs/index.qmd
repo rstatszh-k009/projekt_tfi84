@@ -26,6 +26,12 @@ Gibt es Korrelation zwischen Firmengründungen/ Total geschaffenen Stellen und d
 # Daten Aufbereitung
 
 ```{r}
+#neuestellen <- neuestellen %>% rename(JAHR = INDIKATOR_JAHR)
+
+daten_zusammen <- left_join(einwohner, neuestellen, by = c("BFS_NR", "JAHR"))
+
+write_csv(x = daten_zusammen, 
+          here::here("daten/processed/daten.csv"))
 ```
 
 # Daten Visualisierung
