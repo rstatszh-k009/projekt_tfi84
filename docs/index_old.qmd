@@ -1,0 +1,173 @@
+```{r}
+
+```
+
+---
+title: "Total geschaffene Stellen, Beschäftigte" 
+format: html 
+editor: visual 
+date: 2024-12-02
+author: "tfi84"
+toc: true
+---
+
+```{r}
+library(tidyverse)
+library(dplyr)
+```
+
+```{r}
+neuestellen <- read_csv(here::here("daten/raw/KANTON_ZUERICH_356.csv"))
+einwohner <- read_csv(here::here("daten/raw/KTZH_00002622_00005364.csv"))
+```
+
+# Einleitung
+
+## Daten
+
+## Analyseziele
+
+Gibt es Korrelation zwischen Firmengründungen/ Total geschaffenen Stellen und der Anzahl Einwohner pro HA
+
+# Daten Aufbereitung
+
+```{r}
+#neuestellen <- neuestellen %>% rename(JAHR = INDIKATOR_JAHR)
+
+daten_zusammen <- left_join(einwohner, neuestellen, by = c("BFS_NR", "JAHR"))
+
+write_csv(x = daten_zusammen, 
+          here::here("daten/processed/daten.csv"))
+```
+
+# Daten Visualisierung
+
+```{r}
+daten_zusammen |> 
+  ggplot(aes(x= JAHR, y=Einwohner_pro_ha_Total))+
+  geom_point()
+
+```
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+
+# Daten einlesen
+data <- read_csv(here::here("daten/raw/KANTON_ZUERICH_356.csv"))
+
+
+
+# Top-Gemeinden identifizieren
+top_gemeinden <- data %>%
+  group_by(GEBIET_NAME) %>%
+  summari
+```
+
+```{r}
+se(avg_stellen = mean(INDIKATOR_VALUE)) %>%
+  top_n(5, avg_stellen) %>%
+  pull(GEBIET_NAME)
+
+# Daten für Top-Gemeinden filtern
+top_data <- data %>%
+  filter(GEBIET_NAME %in% top_gemeinden)
+
+# Visualisierung
+ggplot(top_data, aes(x = INDIKATOR_JAHR, y = INDIKATOR_VALUE, color = GEBIET_NAME)) +
+  geom_line() +
+  geom_point() +
+  theme_minimal() +
+  labs(title = "Stellenschaffung durch Unternehmensgründungen in Top-Gemeinden",
+       x = "Jahr", y = "Anzahl geschaffene Stellen")
+```
+
+```{r}
+```
+
+```{r}
+# Benötigte Pakete laden
+library(tidyverse)
+library(readr)
+
+# Daten einlesen
+data <- read_csv(here::here("daten/raw/KANTON_ZUERICH_356.csv"))
+
+# Datenbereinigung
+data_clean <- data %>%
+  select(BFS_NR, GEBIET_NAME, INDIKATOR_JAHR, INDIKATOR_VALUE) %>%
+  rename(Jahr = INDIKATOR_JAHR, Stellen = INDIKATOR_VALUE) %>%
+  mutate(Stellen = as.numeric(Stellen)) %>%  # Konvertierung zu numerisch
+  filter(!is.na(Stellen))
+
+# Gesamtübersicht
+summary_stats <- data_clean %>%
+  group_by(Jahr) %>%
+  summarise(
+    Gesamt_Stellen = sum(Stellen, na.rm = TRUE),
+    Durchschnitt = mean(Stellen, na.rm = TRUE),
+    Median = median(Stellen, na.rm = TRUE)
+  )
+
+print(summary_stats)
+
+# Visualisierung der Gesamtentwicklung
+ggplot(summary_stats, aes(x = Jahr, y = Gesamt_Stellen)) +
+  geom_line() +
+  geom_point() +
+  labs(title = "Entwicklung der geschaffenen Stellen im Kanton Zürich",
+       x = "Jahr", y = "Anzahl geschaffene Stellen")
+
+# Top 5 Gemeinden im Jahr 2021
+top_5_2021 <- data_clean %>%
+  filter(Jahr == 2021) %>%
+  arrange(desc(Stellen)) %>%
+  head(5)
+
+print(top_5_2021)
+
+# Entwicklung für eine spezifische Gemeinde (z.B. Affoltern a.A.)
+affoltern_data <- data_clean %>%
+  filter(GEBIET_NAME == "Affoltern a.A.")
+
+ggplot(affoltern_data, aes(x = Jahr, y = Stellen)) +
+  geom_line() +
+  geom_point() +
+  labs(title = "Entwicklung der geschaffenen Stellen in Affoltern a.A.",
+       x = "Jahr", y = "Anzahl geschaffene Stellen")
+```
+
+```{r}
+library(shiny)
+library(tidyverse)
+
+# Daten einlesen
+data <- read_csv(here::here("daten/raw/KANTON_ZUERICH_356.csv"))
+
+# Liste der Gemeinden erstellen
+gemeinden <- unique(data$GEBIET_NAME)
+
+# UI erstellen
+ui <- fluidPage(
+  selectInput("gemeinde", "Wählen Sie eine Gemeinde:", choices = gemeinden),
+  plotOutput("plot")
+)
+
+# Server-Logik
+server <- function(input, output) {
+  output$plot <- renderPlot({
+    gemeinde_data <- data %>%
+      filter(GEBIET_NAME == input$gemeinde) %>%
+      mutate(INDIKATOR_VALUE = as.numeric(INDIKATOR_VALUE))
+    
+    ggplot(gemeinde_data, aes(x = INDIKATOR_JAHR, y = INDIKATOR_VALUE)) +
+      geom_line() +
+      geom_point() +
+      labs(title = paste("Entwicklung der geschaffenen Stellen in", input$gemeinde),
+           x = "Jahr", y = "Anzahl geschaffene Stellen")
+  })
+}
+
+# Shiny-App erstellen
+shinyApp(ui, server)
+```

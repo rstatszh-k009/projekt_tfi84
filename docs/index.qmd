@@ -1,37 +1,152 @@
 ---
-title: "Total geschaffene Stellen, Beschäftigte" 
+title: "Total geschaffene Stellen" 
 format: html 
 editor: visual 
-author: "tfi84" ---
+date: 2024-12-02
+author: "tfi84"
+toc: true
+Bezirk: "Bezirk Pfäffikon"
 ---
 
 ```{r}
 library(tidyverse)
-library(dplyr)
-```
-
-```{r}
-neuestellen <- read_csv(here::here("daten/raw/KANTON_ZUERICH_356.csv"))
-einwohner <- read_csv(here::here("daten/raw/KTZH_00002622_00005364.csv"))
+library(ggplot2)
+library(knitr)
+#devtools::install_github("statistikZH/statR")
+library(statR)
 ```
 
 # Einleitung
 
-## Daten
-
 ## Analyseziele
 
-Gibt es Korrelation zwischen Firmengründungen/ Total geschaffenen Stellen und der Anzahl Einwohner pro HA
+In diesem Projekt wird die Anzahl geschaffenen Stellen in den jeweiligen Bezirken des Kantons Zürich visualisiert und analysiert. Wie ist die Entwicklung der geschaffenen Stellen über die Jahre in den Bezirken? Gibt es Bezirke mit Signifikat mehr geschaffenen Stellen? Wie hoch ist die Volatilität?
 
-# Daten Aufbereitung
+# Daten
+
+Die Daten wurden vom Statistisches Amt des Kantons Zürich publiziert und enthalten die Total geschaffene Stellen (2. und 3. Sektor) im Kanton Zürich für die Jahre 2013 bis 2021. Die Statistik der Neugründungen erfasst nur tatsächlich - also «ex nihilo» - neu entstandene Unternehmen mit marktwirtschaftlicher Tätigkeit. Aus Fusionen, Übernahmen, Spaltungen oder Restrukturierungen hervorgegangene Unternehmen werden folglich nicht berücksichtigt. Werte \< 4 werden nicht ausgewiesen.
+
+Link: <https://www.web.statistik.zh.ch/ogd/data/KANTON_ZUERICH_356.csv>
 
 ```{r}
-#neuestellen <- neuestellen %>% rename(JAHR = INDIKATOR_JAHR)
-
-daten_zusammen <- left_join(einwohner, neuestellen, by = c("BFS_NR", "JAHR"))
-
-write_csv(x = daten_zusammen, 
-          here::here("daten/processed/daten.csv"))
+data <- read_csv(here::here("daten/raw/KANTON_ZUERICH_356.csv"))
 ```
 
-# Daten Visualisierung
+```{r}
+data_reduziert <- data |> 
+  select(BFS_NR, GEBIET_NAME, INDIKATOR_JAHR, INDIKATOR_VALUE) |> 
+  rename(Jahr = INDIKATOR_JAHR, Stellen = INDIKATOR_VALUE, Gebiet = GEBIET_NAME) |> # Spalten werden umbenannt
+  mutate(Stellen = ifelse(Stellen == "null", 0, Stellen)) |> # konvertiert Wert null in 0
+  mutate(Stellen = as.numeric(Stellen)) |>  # Konvertierung zu numerisch
+  filter(!is.na(Stellen)) |> # Filtert NA raus
+  filter(!str_detect(Gebiet, "bis")) |> # Filtert Gemeinde welche Fusioniert haben raus
+  filter(str_detect(Gebiet, "Bezirk")) # Filtern nur auf Bezirke
+
+
+write_csv(x = data_reduziert, 
+          here::here("daten/processed/daten_reduziert.csv"))
+```
+
+```{r}
+Bezirk <-"Bezirk Pfäffikon"
+titel_zeitreihe_spez <- paste("Entwicklung der Stellen in", Bezirk,"über die Jahre")
+
+# Daten aufbereiten
+data_zf_stat <- data_reduziert |> 
+  group_by(Gebiet) |> 
+  summarise(
+    Durchschnitt_Stellen = mean(Stellen, na.rm = TRUE),
+    Max_Stellen = max(Stellen, na.rm = TRUE),
+    Min_Stellen = min(Stellen, na.rm = TRUE)
+  ) |> 
+  arrange(desc(Durchschnitt_Stellen))
+```
+
+# Ergebnisse
+
+## **Verteilung der Anzahl Stellen pro Jahr**
+
+In @fig-verteilung_stellen_jahr sind die Anzahl Stelle pro Jahr dargestellt. Es ist erkennbar ist das der Median relativ stabil war über die anlysierten Jahre.
+
+```{r}
+#| label: fig-verteilung_stellen_jahr
+#| tbl-cap: "Verteilung der Anzahl Stelle pro Jahr"
+
+# Boxplot für die Verteilung der Stellen nach Jahr
+ggplot(data_reduziert, aes(x = as.factor(Jahr), y = Stellen)) +
+  geom_boxplot(fill = "#3F98CC") +
+  scale_y_continuous(trans='log10')+
+  labs(title = "Verteilung der Stellen nach Jahr",
+       x = "Jahr",
+       y = "Anzahl Stellen") +
+  theme_stat()
+```
+
+## **Anzahl Stelle pro Bezirk**
+
+In @fig-anzahl_stellen_gebiet sind die Anzahl Stelle pro Jahr und Bezirk dargestellt. Der Bezirk Zürich schafft rund vier Mal so viele Stellen wie der nachfolgenden Bezirk Winterthur.
+
+```{r}
+#| label: fig-anzahl_stellen_gebiet
+#| tbl-cap: "Anzahl Stelle pro Bezirk"
+
+# Visualisierung: Balkendiagramm der Gebiete
+ggplot(data_reduziert, aes(x = Jahr, y = Stellen, color = Gebiet)) +
+  geom_point() +
+  geom_line() +
+  scale_x_continuous(breaks = unique(data_reduziert$ Jahr))+
+  scale_y_continuous(trans='log10')+
+  labs(title = "Gebiete nach Anzahl Stellen pro Jahr",
+       x = "Anzahl Stelle",
+       y = "Jahr") +
+  theme_stat()
+
+```
+
+## **Gebiete nach durchschnittlichen Stellen**
+
+In \@tbl-durchschnitt_stelle_gebiet sind die Bezirke mit den Werten dem durchschnittlichen Stellenzuwachs in den Jahren 2013-2021 und dem maximalen, wie auch minimalen Stellenzuwachs ersichtlich. Wobei bei den Stadtbezirken die Differenz zwischen den höchsten und tiefsten Wert relativ klein ist und bei den ländlichen Bezirken eine höheren Volatilität erkennbar ist.
+
+```{r}
+#| label: tbl-durchschnitt_stellen_gebiet
+#| tbl-cap: "<font size= 4.5, color= #000000><b>Gebiete nach durchschnittlichen Stellen</b></font>"
+
+# Tabelle erstellen
+#kable (data_zf_stat, caption = "<font size= 4, color= #000000>Gebiete nach durchschnittlichen Stellen</font>")
+data_zf_stat |> 
+  gt::gt() |> 
+  gt::fmt_number(decimals = 1)
+
+```
+
+## **Entwicklung der Stelle im Bezirk Pfäffikon über die Jahre**
+
+Die \@fig-entwicklung_stellen_pro_gebiet zeit die Entwicklung der neu geschaffenen Stelle für den Bezirk Pfäffikon.
+
+```{r}
+#| label: fig-entwicklung_stellen_pro_gebiet
+#| tbl-cap: "Entwicklung der Stelle im Bezirk Pfäffikon über die Jahre"
+#| 
+Bezirk <-"Bezirk Pfäffikon"
+titel_zeitreihe_spez <- paste("Entwicklung Stellen in", Bezirk,"über die Jahre")
+
+# Zeitreihenanalyse für ein spezifisches Gebiet
+data_bezirk <- data_reduziert |> 
+  filter(Gebiet == Bezirk) |> 
+  arrange(Jahr)
+
+ggplot(data_bezirk, aes(x = Jahr, y = Stellen, color = Gebiet)) +
+  geom_line() +
+  geom_point() +
+  scale_x_continuous(breaks = unique(data_reduziert$ Jahr))+
+  labs(title = titel_zeitreihe_spez ,
+       x = "Jahr",
+       y = "Anzahl Stellen") +
+  theme_stat()
+```
+
+# Schlussfolgerungen
+
+-   Höhere Volatilität in Bezirken mit ländlichen Regionen
+
+-   Bezirk Zürich schafft über vier Mal mehr Stelle wie jeder andere Bezirk

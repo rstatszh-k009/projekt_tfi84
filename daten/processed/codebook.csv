@@ -1,1 +1,5 @@
-variable_name;beschreibung
+﻿variable_name;beschreibung
+data;Rohdaten
+data_reduziert;"data reduktion auf Spalten: INDIKATOR_JAHR, INDIKATOR_VALUE, GEBIET_NAME / Umbennenung der Spalten INDIKATOR_JAHR zu Jahr, INDIKATOR_VALUE zu Stellen, GEBIET_NAME zu Gebiet / Zeile ohne Wert in Stellen rausgefiltert / Zeile mit Wort ""bis"" in Gebiet rausgefiltert (entstanden durch Gemeindefusionen), auf Bezierke reduziert in Gebiet"
+data_zf_stat;data_reduziert gruppiert auf Gebiet (Bezirk) / Durschnitt_Stellen, Max_Stellen, Min_Stellen berechnet und als Spalte erstellt
+data_bezirk;data_reduziert auf ein Bezirk gefiltert
